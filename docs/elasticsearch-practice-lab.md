@@ -22,7 +22,7 @@ The `scenarios/` directories contain setup definitions and source-only NDJSON fi
 
 A place has a stable `place_id`, display fields, a representative coordinate, popularity and an array of search strings. The first search string is the display label; later strings are curated aliases such as `SFO`. Matching multiple aliases still returns one document.
 
-`search_as_you_type` supports prefix matching at token boundaries. The query uses `multi_match` with `type: bool_prefix` against the root field and its shingle subfields. That lets `market` match a later token in `123 Market Street`; it doesn't make `arket` a substring match. Lowercasing and ASCII folding handle basic case and accent differences. They aren't a complete multilingual address strategy. [Search as you type](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/search-as-you-type.html)
+`search_as_you_type` supports prefix matching at token boundaries. The query uses `multi_match` with `type: bool_prefix` against the root field and its shingle subfields. That lets `market` match a later token in `123 Market Street`; it doesn't make `arket` a substring match. Lowercasing and ASCII folding handle basic case and accent differences. They aren't a complete multilingual address strategy. [Search as you type](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/search-as-you-type.html)
 
 Text matching and filtering have separate roles:
 
@@ -31,7 +31,7 @@ Text matching and filtering have separate roles:
 - A geographic radius limits membership.
 - Ranking decides the order of the remaining candidates.
 
-The ranking variations compare text relevance, distance sorting and a balanced `function_score` query. Balanced scoring multiplies text relevance by a bounded combination of proximity and popularity. A hard radius doesn't imply distance sorting, and balanced scoring doesn't guarantee the closest result appears first. [Function score](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/query-dsl-function-score-query.html)
+The ranking variations compare text relevance, distance sorting and a balanced `function_score` query. Balanced scoring multiplies text relevance by a bounded combination of proximity and popularity. A hard radius doesn't imply distance sorting, and balanced scoring doesn't guarantee the closest result appears first. [Function score](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/query-dsl-function-score-query.html)
 
 The typo experiment illustrates a limit of boolean prefix queries: fuzziness can correct an earlier completed token, such as `fery` in `fery b`, but doesn't apply to the final prefix. On the pinned version, trailing whitespace completes the last token: `ferry b ` no longer matches the prefix of Building. [Boolean prefix queries](https://www.elastic.co/docs/reference/query-languages/query-dsl/query-dsl-match-bool-prefix-query)
 
@@ -41,7 +41,7 @@ This model searches known indexed records. Parsing arbitrary postal addresses, i
 
 One product contains one to five nested variants. Each variant carries its SKU, color, size, price and stock quantity. Prices use integer cents.
 
-All variant restrictions belong inside the same nested query. Otherwise a product could qualify because one variant is red while another is large and in stock. The manual object-mapping comparison demonstrates this cross-variant error. `inner_hits` shows the variants that actually qualified. [Nested fields](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/nested.html)
+All variant restrictions belong inside the same nested query. Otherwise a product could qualify because one variant is red while another is large and in stock. The manual object-mapping comparison demonstrates this cross-variant error. `inner_hits` shows the variants that actually qualified. [Nested fields](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/nested.html)
 
 Nested price sorting repeats the variant restrictions. A cheap blue variant shouldn't determine the sort price of a product found through a red-only search.
 
@@ -53,13 +53,13 @@ Inventory is a search projection. Updating stock and refreshing the index change
 
 Logs use a data stream backed by an index template and an ingest pipeline. The pipeline requires event ID, service and message, validates timestamps without discarding their fractional seconds, and lowercases severity. Bulk item errors remain ingestion failures even when the overall HTTP response is 200.
 
-Data streams accept bulk `create` actions. An event ID isn't globally unique across backing indices, so retrying after rollover needs more than an assumption that `_id` deduplicates the entire stream. The loader checks the canonical fixture IDs across the stream before loading: a complete matching set is a no-op, an absent set can be created, and a partial or changed set requires reset. This local preflight assumes no concurrent writes. [Data streams](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/set-up-a-data-stream.html)
+Data streams accept bulk `create` actions. An event ID isn't globally unique across backing indices, so retrying after rollover needs more than an assumption that `_id` deduplicates the entire stream. The loader checks the canonical fixture IDs across the stream before loading: a complete matching set is a no-op, an absent set can be created, and a partial or changed set requires reset. This local preflight assumes no concurrent writes. [Data streams](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/set-up-a-data-stream.html)
 
 The dashboard queries use a fixed January 1, 2026 time window. The payments/prod slice contains ten events, including three errors. A half-open range includes the start and excludes the end. Histogram bounds can add empty buckets, but don't replace the range filter.
 
 Duration metrics ignore missing duration values, while the event count can still include those records. Percentiles are approximate. These details matter when defining dashboard denominators and comparing event metrics.
 
-Rollover changes the write backing index while preserving the stream name. The manual exercise captures the new index from the response. Data-stream lifecycle sets seven-day retention; deletion is asynchronous and isn't an exact event-timestamp TTL. [Data-stream lifecycle](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/data-stream-lifecycle.html)
+Rollover changes the write backing index while preserving the stream name. The manual exercise captures the new index from the response. Data-stream lifecycle sets seven-day retention; deletion is asynchronous and isn't an exact event-timestamp TTL. [Data-stream lifecycle](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/data-stream-lifecycle.html)
 
 ## Document search and permissions
 
@@ -69,7 +69,7 @@ The fixtures include user, group and tenant-wide principals. They deliberately r
 
 Permission restrictions stay in the main query. This scopes hits, highlights, totals and aggregations together. Using `post_filter` for access restrictions would leave aggregation results outside that restriction. ID resolution also uses an ACL-filtered search rather than a raw document lookup.
 
-These requests demonstrate query construction with synthetic identities. The local connection has security disabled, so callers can change or remove the filters. Production enforcement requires a trusted application or configured Elasticsearch document-level security. Source filtering and filtered aliases don't establish that boundary. [Document-level security](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/document-level-security.html)
+These requests demonstrate query construction with synthetic identities. The local connection has security disabled, so callers can change or remove the filters. Production enforcement requires a trusted application or configured Elasticsearch document-level security. Source filtering and filtered aliases don't establish that boundary. [Document-level security](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/document-level-security.html)
 
 The update exercises explore two distinct concerns:
 
@@ -80,7 +80,7 @@ The update exercises explore two distinct concerns:
 
 Hybrid passages have both text fields and indexed four-dimensional cosine vectors. The vectors are hand-authored fixtures marked `embedding_model: fixture-v1`. They illustrate retrieval mechanics for committed query/vector pairs; they aren't embeddings from a language model.
 
-Lexical retrieval finds exact terms. Vector retrieval can find a passage with different wording when its fixture vector is close to the query vector. The combined request uses top-level lexical and kNN branches, whose candidates form a union. Each branch repeats tenant and principal filters because a restriction on one branch doesn't constrain the other. [kNN and hybrid search](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/knn-search.html)
+Lexical retrieval finds exact terms. Vector retrieval can find a passage with different wording when its fixture vector is close to the query vector. The combined request uses top-level lexical and kNN branches, whose candidates form a union. Each branch repeats tenant and principal filters because a restriction on one branch doesn't constrain the other. [kNN and hybrid search](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/knn-search.html)
 
 BM25 and cosine-derived scores have different scales. Boosts change their relative influence but don't calibrate relevance. For cosine kNN, `_score` is `(1 + cosine) / 2`; the kNN `similarity` threshold uses raw cosine. The exact reference query uses `cosine + 1`, so its numeric scores use another scale.
 
@@ -111,7 +111,7 @@ Log and document exercises use point-in-time snapshots with `search_after`:
 3. Copy the complete final hit's sort array into the next request, including Elasticsearch's implicit PIT tie breaker.
 4. Use the latest returned PIT ID and close it after paging.
 
-The fixtures include tied visible sort values to exercise stable paging. A PIT provides snapshot consistency, which can also retain older permission visibility. [Point in time](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/point-in-time-api.html)
+The fixtures include tied visible sort values to exercise stable paging. A PIT provides snapshot consistency, which can also retain older permission visibility. [Point in time](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/point-in-time-api.html)
 
 ## Loading, reset and migration
 
@@ -119,7 +119,7 @@ Ordinary indices have separate read and write aliases. The loader writes through
 
 Re-seeding ordinary indices overwrites canonical IDs while preserving added records. Reset deletes the scenario's exact owned resources and restores the fixtures. Log reset deletes the data stream before its template and pipeline.
 
-The migration exercises create a target index with explicit mappings and settings, pause writes, reindex, check failures, compare counts and relevance, and switch both aliases in one request. Reindexing doesn't copy mappings or settings. The old index remains available for rollback while writes are paused. [Aliases API](https://www.elastic.co/guide/en/elasticsearch/reference/8.19/indices-aliases.html)
+The migration exercises create a target index with explicit mappings and settings, pause writes, reindex, check failures, compare counts and relevance, and switch both aliases in one request. Reindexing doesn't copy mappings or settings. The old index remains available for rollback while writes are paused. [Aliases API](https://www.elastic.co/guide/en/elasticsearch/reference/9.5/indices-aliases.html)
 
 An atomic alias switch doesn't capture concurrent updates or deletions. Production migrations need replay or catch-up, delete propagation and a cutover policy. Rolling back after divergent writes needs reconciliation.
 

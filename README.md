@@ -18,7 +18,7 @@ Start with address search and work down the table. The [design notes](docs/elast
 
 You'll need Python 3.11+, Docker with Compose v2, and Postman desktop v12 or later. The collection uses Postman's native v3 YAML format. For command-line runs, install the [Postman CLI](https://learning.postman.com/docs/postman-cli/postman-cli-installation/) with native YAML support; Newman doesn't support this format.
 
-Elasticsearch and optional Kibana are pinned to **8.19.19**. Elasticsearch has a 2 GiB container memory limit, so allow additional Docker memory for overhead and Kibana if enabled.
+Elasticsearch and optional Kibana are pinned to **9.5.6**. Elasticsearch has a 2 GiB container memory limit, so allow additional Docker memory for overhead and Kibana if enabled. The first start after pulling a new image can take several minutes on Docker Desktop.
 
 ```sh
 python3 -m venv .venv
