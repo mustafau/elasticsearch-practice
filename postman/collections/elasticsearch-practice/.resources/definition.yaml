@@ -1,0 +1,6 @@
+$kind: collection
+name: Elasticsearch Practice Lab
+description: Five direct Elasticsearch API labs. Run automated groups through make postman-test. Manual folders
+  intentionally mutate disposable lab data. No application API or cloud link.
+variables:
+  esUrl: http://localhost:9200

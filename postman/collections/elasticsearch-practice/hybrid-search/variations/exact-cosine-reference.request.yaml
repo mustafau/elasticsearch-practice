@@ -1,0 +1,83 @@
+$kind: http-request
+name: exact-cosine-reference
+description: POST /lab-hybrid-search-read/_search. Exercise exact cosine reference; inspect the assertion for controlled
+  expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-hybrid-search-read/_search'
+order: 2000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 10,
+      "query": {
+        "script_score": {
+          "query": {
+            "bool": {
+              "filter": [
+                {
+                  "term": {
+                    "tenant_id": "acme"
+                  }
+                },
+                {
+                  "terms": {
+                    "allowed_principals": [
+                      "user:alice",
+                      "group:engineering",
+                      "tenant:acme:all"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "script": {
+            "source": "cosineSimilarity(params.q, 'embedding') + 1.0",
+            "params": {
+              "q": [
+                1,
+                0,
+                0,
+                0
+              ]
+            }
+          }
+        }
+      },
+      "sort": [
+        {
+          "_score": "desc"
+        },
+        {
+          "passage_id": "asc"
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('exact-cosine-reference semantics', function () {
+    pm.expect(ids).to.include("hybrid-paraphrase");
+    pm.expect(ids).to.include("hybrid-exact");
+    pm.expect(ids.indexOf("hybrid-paraphrase")).to.be.below(ids.indexOf("hybrid-exact"));
+    pm.expect(ids).not.to.include("hybrid-private");
+    pm.expect(ids).not.to.include("hybrid-other-tenant");
+    const approx=JSON.parse(pm.collectionVariables.get('hybridVectorIds'));
+    const overlap=ids.filter(id=>approx.includes(id)).length/ids.length;
+    console.log('Approximate/exact top-10 overlap',overlap,'ties at cosine zero are arbitrary HNSW candidates');
+    pm.expect(overlap).to.be.at.least(0.2);
+    pm.expect(ids.slice(0,2)).to.eql(approx.slice(0,2));
+    });

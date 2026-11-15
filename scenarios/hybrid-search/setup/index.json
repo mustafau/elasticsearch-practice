@@ -1,0 +1,45 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "1s"
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "passage_id": {
+        "type": "keyword"
+      },
+      "document_id": {
+        "type": "keyword"
+      },
+      "tenant_id": {
+        "type": "keyword"
+      },
+      "allowed_principals": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text"
+      },
+      "body": {
+        "type": "text"
+      },
+      "embedding": {
+        "type": "dense_vector",
+        "dims": 4,
+        "index": true,
+        "similarity": "cosine",
+        "index_options": {
+          "type": "hnsw"
+        }
+      },
+      "embedding_model": {
+        "type": "keyword"
+      },
+      "updated_at": {
+        "type": "date"
+      }
+    }
+  }
+}

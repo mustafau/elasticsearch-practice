@@ -1,0 +1,64 @@
+$kind: http-request
+name: cross-service-trace
+description: POST /lab-log-search-events/_search. Exercise cross service trace; inspect the assertion for controlled
+  expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-log-search-events/_search'
+order: 1000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 30,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "term": {
+                "trace_id": "trace-known"
+              }
+            },
+            {
+              "term": {
+                "environment": "prod"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2026-01-01T12:00:00Z",
+                  "lt": "2026-01-01T12:11:00Z"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sort": [
+        {
+          "@timestamp": "asc"
+        },
+        {
+          "event_id": "asc"
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('cross-service-trace semantics', function () {
+    pm.expect(new Set(hits.map(h=>h._source.service)).size).to.be.above(1);
+    for(const h of hits) {pm.expect(h._source.trace_id).to.equal("trace-known"); pm.expect(h._source.environment).to.equal("prod");}
+    });

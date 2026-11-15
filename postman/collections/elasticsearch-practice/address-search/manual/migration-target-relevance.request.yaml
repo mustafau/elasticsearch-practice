@@ -1,0 +1,120 @@
+$kind: http-request
+name: migration-target-relevance
+description: Validate relevance directly against the target while both aliases still point to v1. Use a clean reset
+  before a migration sequence; earlier independent mutation exercises change baseline expectations.
+method: POST
+url: '{{esUrl}}/lab-address-search-v2-000001/_search'
+order: 5000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 20,
+      "track_total_hits": true,
+      "timeout": "250ms",
+      "_source": [
+        "place_id",
+        "name",
+        "label",
+        "place_type",
+        "city_id",
+        "country_code",
+        "location"
+      ],
+      "query": {
+        "function_score": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "multi_match": {
+                    "query": "ferry b",
+                    "type": "bool_prefix",
+                    "fields": [
+                      "search_text",
+                      "search_text._2gram",
+                      "search_text._3gram"
+                    ],
+                    "operator": "and"
+                  }
+                }
+              ],
+              "filter": [
+                {
+                  "term": {
+                    "country_code": "US"
+                  }
+                },
+                {
+                  "geo_distance": {
+                    "distance": "25000m",
+                    "distance_type": "arc",
+                    "location": {
+                      "lat": 37.7936,
+                      "lon": -122.3958
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "functions": [
+            {
+              "weight": 1.0
+            },
+            {
+              "gauss": {
+                "location": {
+                  "origin": {
+                    "lat": 37.7936,
+                    "lon": -122.3958
+                  },
+                  "scale": "5km",
+                  "offset": "500m",
+                  "decay": 0.5
+                }
+              },
+              "weight": 3.0
+            },
+            {
+              "field_value_factor": {
+                "field": "popularity",
+                "modifier": "log1p",
+                "factor": 1.0,
+                "missing": 0
+              },
+              "weight": 0.2
+            }
+          ],
+          "score_mode": "sum",
+          "boost_mode": "multiply",
+          "max_boost": 5.0
+        }
+      },
+      "sort": [
+        {
+          "_score": "desc"
+        },
+        {
+          "place_id": "asc"
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('migration-target-relevance semantics', function () {
+    pm.expect(ids).to.include("sf-ferry-building");
+    });

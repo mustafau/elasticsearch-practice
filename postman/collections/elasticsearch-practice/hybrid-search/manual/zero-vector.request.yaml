@@ -1,0 +1,51 @@
+$kind: http-request
+name: zero-vector
+description: PUT /lab-hybrid-search-write/_doc/manual-zero-vector?require_alias=true&refresh=wait_for. Exercise
+  zero vector; inspect the assertion for controlled expected results and vary one literal parameter to compare behavior.
+method: PUT
+url: '{{esUrl}}/lab-hybrid-search-write/_doc/manual-zero-vector?require_alias=true&refresh=wait_for'
+queryParams:
+- key: require_alias
+  value: 'true'
+- key: refresh
+  value: wait_for
+order: 2000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "passage_id": "manual-zero-vector",
+      "document_id": "parent-hybrid-exact",
+      "tenant_id": "acme",
+      "allowed_principals": [
+        "tenant:acme:all"
+      ],
+      "title": "Reset password",
+      "body": "Reset password instructions and reference details",
+      "embedding": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "embedding_model": "fixture-v1",
+      "updated_at": "2026-01-01T00:00:00Z"
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([400]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('zero-vector semantics', function () {
+    pm.expect(body.error).to.exist;
+    });

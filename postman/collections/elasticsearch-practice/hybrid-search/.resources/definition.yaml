@@ -1,0 +1,5 @@
+$kind: collection
+name: hybrid-search
+order: 5000
+description: 'hybrid-search: direct Elasticsearch practice. Run core, variations and internals; select manual mutations
+  explicitly.'

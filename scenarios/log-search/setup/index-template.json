@@ -1,0 +1,50 @@
+{
+  "index_patterns": [
+    "lab-log-search-events*"
+  ],
+  "priority": 200,
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "1s",
+      "index.default_pipeline": "lab-log-search-ingest"
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "event_id": {
+          "type": "keyword"
+        },
+        "message": {
+          "type": "text"
+        },
+        "service": {
+          "type": "keyword"
+        },
+        "environment": {
+          "type": "keyword"
+        },
+        "severity": {
+          "type": "keyword"
+        },
+        "trace_id": {
+          "type": "keyword"
+        },
+        "http_status": {
+          "type": "integer"
+        },
+        "duration_ms": {
+          "type": "float"
+        },
+        "labels": {
+          "type": "flattened"
+        }
+      }
+    }
+  }
+}

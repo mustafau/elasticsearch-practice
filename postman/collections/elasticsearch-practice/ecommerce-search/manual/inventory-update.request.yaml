@@ -1,0 +1,51 @@
+$kind: http-request
+name: inventory-update
+description: POST /lab-ecommerce-search-write/_update/shoe-valid-red-l?refresh=wait_for. Exercise inventory update;
+  inspect the assertion for controlled expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-ecommerce-search-write/_update/shoe-valid-red-l?refresh=wait_for'
+queryParams:
+- key: refresh
+  value: wait_for
+order: 4000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "doc": {
+        "variants": [
+          {
+            "sku": "shoe-valid-red-l-0",
+            "color": "red",
+            "size": "L",
+            "price_cents": 8000,
+            "stock_qty": 0
+          },
+          {
+            "sku": "shoe-valid-red-l-1",
+            "color": "blue",
+            "size": "S",
+            "price_cents": 1000,
+            "stock_qty": 9
+          }
+        ]
+      }
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('inventory-update semantics', function () {
+    pm.expect(body.result).to.equal("updated");
+    });

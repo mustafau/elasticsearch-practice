@@ -1,0 +1,36 @@
+[
+  {
+    "query": "reset password",
+    "vector": [
+      1,
+      0,
+      0,
+      0
+    ],
+    "embedding_model": "fixture-v1",
+    "expected_vector_first": "hybrid-paraphrase"
+  },
+  {
+    "query": "warehouse packing",
+    "vector": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "embedding_model": "fixture-v1",
+    "expected_vector_first": "hybrid-unrelated"
+  },
+  {
+    "query": "release operations",
+    "vector": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "embedding_model": "fixture-v1",
+    "expected_vector_family": "passage-",
+    "note": "Fifteen release notes tie at cosine one; top-k membership among ties is not guaranteed."
+  }
+]

@@ -1,0 +1,43 @@
+$kind: http-request
+name: migration-reindex
+description: POST /_reindex?wait_for_completion=true&refresh=true. Exercise migration reindex; inspect the assertion
+  for controlled expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/_reindex?wait_for_completion=true&refresh=true'
+queryParams:
+- key: wait_for_completion
+  value: 'true'
+- key: refresh
+  value: 'true'
+order: 7000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "source": {
+        "index": "lab-ecommerce-search-v1-000001"
+      },
+      "dest": {
+        "index": "lab-ecommerce-search-v2-000001"
+      }
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('migration-reindex semantics', function () {
+    pm.expect(body.failures).to.eql([]);
+    pm.expect(body.created+body.updated).to.equal(body.total);
+    pm.expect(body.total).to.equal(30);
+    });

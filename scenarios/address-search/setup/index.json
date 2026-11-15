@@ -1,0 +1,68 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "1s",
+    "analysis": {
+      "analyzer": {
+        "address_search": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "asciifolding"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "place_id": {
+        "type": "keyword"
+      },
+      "name": {
+        "type": "keyword"
+      },
+      "label": {
+        "type": "keyword"
+      },
+      "address_line": {
+        "type": "keyword"
+      },
+      "city": {
+        "type": "keyword"
+      },
+      "city_id": {
+        "type": "keyword"
+      },
+      "region_code": {
+        "type": "keyword"
+      },
+      "postal_code": {
+        "type": "keyword"
+      },
+      "country_code": {
+        "type": "keyword"
+      },
+      "place_type": {
+        "type": "keyword"
+      },
+      "location": {
+        "type": "geo_point"
+      },
+      "popularity": {
+        "type": "integer"
+      },
+      "search_text": {
+        "type": "search_as_you_type",
+        "analyzer": "address_search",
+        "max_shingle_size": 3
+      },
+      "updated_at": {
+        "type": "date"
+      }
+    }
+  }
+}

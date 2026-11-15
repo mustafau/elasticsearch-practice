@@ -1,0 +1,69 @@
+$kind: http-request
+name: empty-minute-bounds
+description: POST /lab-log-search-events/_search. Exercise empty minute bounds; inspect the assertion for controlled
+  expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-log-search-events/_search'
+order: 3000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 0,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "term": {
+                "environment": "prod"
+              }
+            },
+            {
+              "term": {
+                "service": "payments"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2026-01-01T12:00:00Z",
+                  "lt": "2026-01-01T12:05:00Z"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "minutes": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "fixed_interval": "1m",
+            "time_zone": "UTC",
+            "min_doc_count": 0,
+            "extended_bounds": {
+              "min": "2026-01-01T12:00:00Z",
+              "max": "2026-01-01T12:06:00Z"
+            }
+          }
+        }
+      }
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('empty-minute-bounds semantics', function () {
+    pm.expect(body.aggregations.minutes.buckets.map(b=>b.doc_count)).to.eql([2,2,2,2,2,0,0]);
+    });

@@ -1,0 +1,26 @@
+{
+  "alice": {
+    "tenant_id": "acme",
+    "effective_principals": [
+      "user:alice",
+      "group:engineering",
+      "tenant:acme:all"
+    ]
+  },
+  "bob": {
+    "tenant_id": "acme",
+    "effective_principals": [
+      "user:bob",
+      "group:sales",
+      "tenant:acme:all"
+    ]
+  },
+  "carol": {
+    "tenant_id": "globex",
+    "effective_principals": [
+      "user:carol",
+      "group:engineering",
+      "tenant:globex:all"
+    ]
+  }
+}

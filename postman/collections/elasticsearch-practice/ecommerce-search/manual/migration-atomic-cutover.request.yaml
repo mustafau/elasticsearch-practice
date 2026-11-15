@@ -1,0 +1,57 @@
+$kind: http-request
+name: migration-atomic-cutover
+description: Atomically move both aliases after count and relevance checks. Keep v1 for rollback while writes remain
+  paused. Atomic alias changes do not capture concurrent source updates or delete propagation.
+method: POST
+url: '{{esUrl}}/_aliases'
+order: 10000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "actions": [
+        {
+          "remove": {
+            "index": "lab-ecommerce-search-v1-000001",
+            "alias": "lab-ecommerce-search-read"
+          }
+        },
+        {
+          "add": {
+            "index": "lab-ecommerce-search-v2-000001",
+            "alias": "lab-ecommerce-search-read"
+          }
+        },
+        {
+          "remove": {
+            "index": "lab-ecommerce-search-v1-000001",
+            "alias": "lab-ecommerce-search-write"
+          }
+        },
+        {
+          "add": {
+            "index": "lab-ecommerce-search-v2-000001",
+            "alias": "lab-ecommerce-search-write",
+            "is_write_index": true
+          }
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('migration-atomic-cutover semantics', function () {
+    pm.expect(body.acknowledged).to.equal(true);
+    });

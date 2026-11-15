@@ -1,0 +1,17 @@
+{
+  "actions": [
+    {
+      "add": {
+        "index": "lab-hybrid-search-v1-000001",
+        "alias": "lab-hybrid-search-read"
+      }
+    },
+    {
+      "add": {
+        "index": "lab-hybrid-search-v1-000001",
+        "alias": "lab-hybrid-search-write",
+        "is_write_index": true
+      }
+    }
+  ]
+}

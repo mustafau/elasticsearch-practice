@@ -1,0 +1,76 @@
+$kind: http-request
+name: missing-resolution
+description: POST /lab-document-search-read/_search. Exercise missing resolution; inspect the assertion for controlled
+  expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-document-search-read/_search'
+order: 4000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 1,
+      "track_total_hits": true,
+      "timeout": "2s",
+      "_source": [
+        "document_id",
+        "title",
+        "document_type",
+        "updated_at"
+      ],
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "ids": {
+                "values": [
+                  "missing-id"
+                ]
+              }
+            }
+          ],
+          "filter": [
+            {
+              "term": {
+                "tenant_id": "acme"
+              }
+            },
+            {
+              "terms": {
+                "allowed_principals": [
+                  "user:alice",
+                  "group:engineering",
+                  "tenant:acme:all"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "sort": [
+        {
+          "_score": "desc"
+        },
+        {
+          "document_id": "asc"
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('missing-resolution semantics', function () {
+    pm.expect([...ids].sort()).to.eql([]);
+    });

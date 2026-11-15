@@ -1,0 +1,5 @@
+$kind: collection
+name: document-search
+order: 4000
+description: 'document-search: direct Elasticsearch practice. Run core, variations and internals; select manual
+  mutations explicitly.'

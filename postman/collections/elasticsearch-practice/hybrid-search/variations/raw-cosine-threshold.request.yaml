@@ -1,0 +1,80 @@
+$kind: http-request
+name: raw-cosine-threshold
+description: kNN similarity=0.8 is a raw cosine threshold; Elasticsearch transforms cosine to _score=(1+cosine)/2.
+  The exact-keyword anchor has cosine 0.6 and is excluded. Without a threshold the nearest list includes unrelated
+  fixtures.
+method: POST
+url: '{{esUrl}}/lab-hybrid-search-read/_search'
+order: 3000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 10,
+      "timeout": "2s",
+      "_source": [
+        "passage_id",
+        "document_id",
+        "title",
+        "body"
+      ],
+      "knn": {
+        "field": "embedding",
+        "query_vector": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "k": 10,
+        "num_candidates": 20,
+        "filter": {
+          "bool": {
+            "filter": [
+              {
+                "term": {
+                  "tenant_id": "acme"
+                }
+              },
+              {
+                "terms": {
+                  "allowed_principals": [
+                    "user:alice",
+                    "group:engineering",
+                    "tenant:acme:all"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "similarity": 0.8
+      },
+      "sort": [
+        {
+          "_score": "desc"
+        },
+        {
+          "passage_id": "asc"
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('raw-cosine-threshold semantics', function () {
+    pm.expect([...ids].sort()).to.eql(["hybrid-paraphrase"]);
+    pm.expect(hits[0]._score).to.be.closeTo(1,0.000001);
+    });

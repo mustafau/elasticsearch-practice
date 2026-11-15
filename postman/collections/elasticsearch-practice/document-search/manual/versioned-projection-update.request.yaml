@@ -1,0 +1,51 @@
+$kind: http-request
+name: versioned-projection-update
+description: PUT /lab-document-search-write/_doc/acme-alice?version=10&version_type=external&require_alias=true&refresh=wait_for.
+  Exercise versioned projection update; inspect the assertion for controlled expected results and vary one literal
+  parameter to compare behavior.
+method: PUT
+url: '{{esUrl}}/lab-document-search-write/_doc/acme-alice?version=10&version_type=external&require_alias=true&refresh=wait_for'
+queryParams:
+- key: version
+  value: '10'
+- key: version_type
+  value: external
+- key: require_alias
+  value: 'true'
+- key: refresh
+  value: wait_for
+order: 6000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "document_id": "acme-alice",
+      "tenant_id": "acme",
+      "title": "Deployment Guide",
+      "body": "Deployment guide for a reliable release",
+      "document_type": "guide",
+      "owner_id": "alice",
+      "allowed_principals": [
+        "user:alice"
+      ],
+      "updated_at": "2026-01-01T00:00:00Z",
+      "revision": 10
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('versioned-projection-update semantics', function () {
+    pm.expect(body._version).to.equal(10);
+    });

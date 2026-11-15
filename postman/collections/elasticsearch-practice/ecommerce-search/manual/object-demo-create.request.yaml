@@ -1,0 +1,86 @@
+$kind: http-request
+name: object-demo-create
+description: PUT /lab-ecommerce-search-object-demo. Exercise object demo create; inspect the assertion for controlled
+  expected results and vary one literal parameter to compare behavior.
+method: PUT
+url: '{{esUrl}}/lab-ecommerce-search-object-demo'
+order: 1000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "refresh_interval": "1s"
+      },
+      "mappings": {
+        "dynamic": "strict",
+        "properties": {
+          "product_id": {
+            "type": "keyword"
+          },
+          "title": {
+            "type": "text",
+            "fields": {
+              "raw": {
+                "type": "keyword"
+              }
+            }
+          },
+          "description": {
+            "type": "text"
+          },
+          "brand": {
+            "type": "keyword"
+          },
+          "category_id": {
+            "type": "keyword"
+          },
+          "rating": {
+            "type": "float"
+          },
+          "updated_at": {
+            "type": "date"
+          },
+          "variants": {
+            "type": "object",
+            "properties": {
+              "sku": {
+                "type": "keyword"
+              },
+              "color": {
+                "type": "keyword"
+              },
+              "size": {
+                "type": "keyword"
+              },
+              "price_cents": {
+                "type": "integer"
+              },
+              "stock_qty": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('object-demo-create semantics', function () {
+    pm.expect(body.acknowledged).to.equal(true);
+    });

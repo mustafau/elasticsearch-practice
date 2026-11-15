@@ -1,0 +1,26 @@
+{
+  "slug": "document-search",
+  "display_name": "Document Search",
+  "resources": [
+    {
+      "kind": "index",
+      "name": "lab-document-search-v1-000001",
+      "body": "setup/index.json"
+    },
+    {
+      "kind": "aliases",
+      "name": "lab-document-search",
+      "body": "setup/aliases.json"
+    }
+  ],
+  "manual_indices": [
+    "lab-document-search-v2-000001"
+  ],
+  "target": "lab-document-search-write",
+  "read_target": "lab-document-search-read",
+  "fixtures": "data/documents.ndjson",
+  "id_field": "document_id",
+  "expected_count": 24,
+  "seed_mode": "index",
+  "postman_folder": "postman/collections/elasticsearch-practice/document-search"
+}

@@ -1,0 +1,61 @@
+$kind: http-request
+name: object-cross-variant-failure
+description: 'Educational failure: object arrays flatten child relationships. This deliberately incorrect object
+  mapping admits red/M plus blue/L as red/L. Run create and seed first; reset deletes the isolated demo index.'
+method: POST
+url: '{{esUrl}}/lab-ecommerce-search-object-demo/_search'
+order: 3000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 10,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "term": {
+                "variants.color": "red"
+              }
+            },
+            {
+              "term": {
+                "variants.size": "L"
+              }
+            },
+            {
+              "range": {
+                "variants.price_cents": {
+                  "lte": 10000
+                }
+              }
+            },
+            {
+              "range": {
+                "variants.stock_qty": {
+                  "gt": 0
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('object-cross-variant-failure semantics', function () {
+    pm.expect([...ids].sort()).to.eql(["shoe-cross-variant"]);
+    });

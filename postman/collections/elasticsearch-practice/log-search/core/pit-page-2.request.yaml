@@ -1,0 +1,86 @@
+$kind: http-request
+name: pit-page-2
+description: Stable page 2, size two. Keep the identical query/sort, latest PIT ID and entire final-hit sort array
+  including the implicit PIT tie breaker. The following close request runs even after assertion failures in the
+  default runner.
+method: POST
+url: '{{esUrl}}/_search'
+order: 5000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 2,
+      "track_total_hits": true,
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "term": {
+                "environment": "prod"
+              }
+            },
+            {
+              "term": {
+                "service": "payments"
+              }
+            },
+            {
+              "range": {
+                "@timestamp": {
+                  "gte": "2026-01-01T12:00:00Z",
+                  "lt": "2026-01-01T12:05:00Z"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "sort": [
+        {
+          "@timestamp": "asc"
+        },
+        {
+          "event_id": "asc"
+        }
+      ],
+      "pit": {
+        "id": "{{logPitId}}",
+        "keep_alive": "1m"
+      },
+      "search_after": {{logSearchAfter}}
+    }
+scripts:
+- type: beforeRequest
+  language: text/javascript
+  code: |
+    if(!pm.collectionVariables.get('logPitId')) throw new Error('Run PIT open first');
+    if(!pm.collectionVariables.get('logSearchAfter')) throw new Error('Run previous page first');
+
+    const after = JSON.parse(pm.collectionVariables.get('logSearchAfter'));
+    if(!Array.isArray(after) || after.length !== 3) throw new Error('Expected complete three-value PIT sort array');
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('pit-page-2 semantics', function () {
+    pm.expect(body.hits.total.value).to.equal(10);
+    pm.expect(body.pit_id).to.be.a('string');
+    pm.collectionVariables.set('logPitId',body.pit_id);
+    const seen=JSON.parse(pm.collectionVariables.get('logSeenIds'));
+    for (const id of ids) pm.expect(seen).not.to.include(id);
+    seen.push(...ids);
+    pm.collectionVariables.set('logSeenIds',JSON.stringify(seen));
+    if(hits.length) pm.collectionVariables.set('logSearchAfter',JSON.stringify(hits[hits.length-1].sort));
+
+    });

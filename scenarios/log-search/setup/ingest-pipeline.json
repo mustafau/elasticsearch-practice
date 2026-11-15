@@ -1,0 +1,25 @@
+{
+  "description": "Strict lab log validation; failures reject the item.",
+  "processors": [
+    {
+      "fail": {
+        "if": "ctx.event_id == null || ctx.event_id == '' || ctx.service == null || ctx.service == '' || ctx.message == null || ctx.message == ''",
+        "message": "event_id, service and message are required"
+      }
+    },
+    {
+      "date": {
+        "field": "@timestamp",
+        "formats": [
+          "ISO8601"
+        ],
+        "target_field": "_ingest.parsed_timestamp"
+      }
+    },
+    {
+      "lowercase": {
+        "field": "severity"
+      }
+    }
+  ]
+}

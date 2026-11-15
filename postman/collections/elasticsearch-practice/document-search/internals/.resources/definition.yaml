@@ -1,0 +1,4 @@
+$kind: collection
+name: internals
+order: 3000
+description: Ordered internals exercises for document-search.

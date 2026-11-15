@@ -1,0 +1,63 @@
+$kind: http-request
+name: explain-lexical
+description: POST /lab-hybrid-search-read/_explain/hybrid-exact. Exercise explain lexical; inspect the assertion
+  for controlled expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-hybrid-search-read/_explain/hybrid-exact'
+order: 2000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "multi_match": {
+                "query": "reset password",
+                "fields": [
+                  "title^3",
+                  "body"
+                ],
+                "operator": "and"
+              }
+            }
+          ],
+          "filter": [
+            {
+              "term": {
+                "tenant_id": "acme"
+              }
+            },
+            {
+              "terms": {
+                "allowed_principals": [
+                  "user:alice",
+                  "group:engineering",
+                  "tenant:acme:all"
+                ]
+              }
+            }
+          ],
+          "boost": 1.0
+        }
+      }
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('explain-lexical semantics', function () {
+    pm.expect(body.matched).to.equal(true);
+    });

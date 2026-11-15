@@ -1,0 +1,31 @@
+$kind: http-request
+name: rollover
+description: POST /lab-log-search-events/_rollover. Exercise rollover; inspect the assertion for controlled expected
+  results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-log-search-events/_rollover'
+order: 3000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {}
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('rollover semantics', function () {
+    pm.expect(body.rolled_over).to.equal(true);
+    pm.expect(body.new_index).not.to.equal(body.old_index);
+    pm.collectionVariables.set("logWriteBackingIndex",body.new_index);
+    });

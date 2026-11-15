@@ -1,0 +1,22 @@
+$kind: http-request
+name: store-statistics
+description: GET /lab-address-search-read/_stats/store,docs. Exercise store statistics; inspect the assertion for
+  controlled expected results and vary one literal parameter to compare behavior.
+method: GET
+url: '{{esUrl}}/lab-address-search-read/_stats/store,docs'
+order: 7000
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('store-statistics semantics', function () {
+    pm.expect(body._all.primaries.docs.count).to.be.at.least(42);
+    });

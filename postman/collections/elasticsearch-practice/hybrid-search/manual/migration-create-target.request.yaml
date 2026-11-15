@@ -1,0 +1,73 @@
+$kind: http-request
+name: migration-create-target
+description: 'Pause writes before this sequence. Explicit target settings/mappings are required: reindex does not
+  copy them. Existing target is an intentional error; reset removes owned migration indices.'
+method: PUT
+url: '{{esUrl}}/lab-hybrid-search-v2-000001'
+order: 3000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "refresh_interval": "1s"
+      },
+      "mappings": {
+        "dynamic": "strict",
+        "properties": {
+          "passage_id": {
+            "type": "keyword"
+          },
+          "document_id": {
+            "type": "keyword"
+          },
+          "tenant_id": {
+            "type": "keyword"
+          },
+          "allowed_principals": {
+            "type": "keyword"
+          },
+          "title": {
+            "type": "text"
+          },
+          "body": {
+            "type": "text"
+          },
+          "embedding": {
+            "type": "dense_vector",
+            "dims": 4,
+            "index": true,
+            "similarity": "cosine",
+            "index_options": {
+              "type": "hnsw"
+            }
+          },
+          "embedding_model": {
+            "type": "keyword"
+          },
+          "updated_at": {
+            "type": "date"
+          }
+        }
+      }
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('migration-create-target semantics', function () {
+    pm.expect(body.acknowledged).to.equal(true);
+    });

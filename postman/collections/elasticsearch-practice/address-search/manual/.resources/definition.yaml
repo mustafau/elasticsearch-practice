@@ -1,0 +1,4 @@
+$kind: collection
+name: manual
+order: 4000
+description: Explicit opt-in mutations and expected errors. Reset the scenario afterward.

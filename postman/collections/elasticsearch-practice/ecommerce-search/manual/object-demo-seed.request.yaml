@@ -1,0 +1,56 @@
+$kind: http-request
+name: object-demo-seed
+description: PUT /lab-ecommerce-search-object-demo/_doc/shoe-cross-variant?refresh=wait_for. Exercise object demo
+  seed; inspect the assertion for controlled expected results and vary one literal parameter to compare behavior.
+method: PUT
+url: '{{esUrl}}/lab-ecommerce-search-object-demo/_doc/shoe-cross-variant?refresh=wait_for'
+queryParams:
+- key: refresh
+  value: wait_for
+order: 2000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "product_id": "shoe-cross-variant",
+      "title": "Running Shoe",
+      "description": "Running Shoe with durable materials",
+      "brand": "acme",
+      "category_id": "running-shoes",
+      "rating": 4.0,
+      "updated_at": "2026-01-01T00:00:00Z",
+      "variants": [
+        {
+          "sku": "shoe-cross-variant-0",
+          "color": "red",
+          "size": "M",
+          "price_cents": 6000,
+          "stock_qty": 5
+        },
+        {
+          "sku": "shoe-cross-variant-1",
+          "color": "blue",
+          "size": "L",
+          "price_cents": 7000,
+          "stock_qty": 3
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('object-demo-seed semantics', function () {
+    pm.expect(body.result).to.be.oneOf(["created","updated"]);
+    });

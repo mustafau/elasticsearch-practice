@@ -1,0 +1,34 @@
+{
+  "slug": "log-search",
+  "display_name": "Log Search",
+  "resources": [
+    {
+      "kind": "pipeline",
+      "name": "lab-log-search-ingest",
+      "body": "setup/ingest-pipeline.json"
+    },
+    {
+      "kind": "template",
+      "name": "lab-log-search-template",
+      "body": "setup/index-template.json"
+    },
+    {
+      "kind": "stream",
+      "name": "lab-log-search-events",
+      "body": "setup/data-stream.json"
+    },
+    {
+      "kind": "lifecycle",
+      "name": "lab-log-search-events",
+      "body": "setup/lifecycle.json"
+    }
+  ],
+  "manual_indices": [],
+  "target": "lab-log-search-events",
+  "read_target": "lab-log-search-events",
+  "fixtures": "data/events.ndjson",
+  "id_field": "event_id",
+  "expected_count": 122,
+  "seed_mode": "create",
+  "postman_folder": "postman/collections/elasticsearch-practice/log-search"
+}

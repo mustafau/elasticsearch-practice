@@ -1,0 +1,105 @@
+$kind: http-request
+name: carol-principal-matrix
+description: Fixture-selected principal carol. Tenant restriction and allowlist OR are in the main query, so hits,
+  highlights, totals and type facets share the expected matrix. Direct unauthenticated access is only an ACL simulation.
+method: POST
+url: '{{esUrl}}/lab-document-search-read/_search'
+order: 3000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 10,
+      "track_total_hits": true,
+      "timeout": "2s",
+      "_source": [
+        "document_id",
+        "title",
+        "document_type",
+        "updated_at"
+      ],
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "multi_match": {
+                "query": "deployment guide",
+                "fields": [
+                  "title^4",
+                  "body"
+                ],
+                "operator": "and"
+              }
+            }
+          ],
+          "filter": [
+            {
+              "term": {
+                "tenant_id": "globex"
+              }
+            },
+            {
+              "terms": {
+                "allowed_principals": [
+                  "user:carol",
+                  "group:engineering",
+                  "tenant:globex:all"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "highlight": {
+        "pre_tags": [
+          "<mark>"
+        ],
+        "post_tags": [
+          "</mark>"
+        ],
+        "fields": {
+          "title": {},
+          "body": {
+            "fragment_size": 120,
+            "number_of_fragments": 2
+          }
+        }
+      },
+      "aggs": {
+        "types": {
+          "terms": {
+            "field": "document_type",
+            "size": 10
+          }
+        }
+      },
+      "sort": [
+        {
+          "_score": "desc"
+        },
+        {
+          "document_id": "asc"
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('carol-principal-matrix semantics', function () {
+    pm.expect([...ids].sort()).to.eql(["globex-eng"]);
+    pm.expect(body.hits.total.value).to.equal(1);
+    pm.expect(body.aggregations.types.buckets.map(b=>[b.key,b.doc_count])).to.eql([["guide",1]]);
+    for(const h of hits) { pm.expect(h.highlight).to.exist; pm.expect(["globex-eng"]).to.include(h._id); }
+    });

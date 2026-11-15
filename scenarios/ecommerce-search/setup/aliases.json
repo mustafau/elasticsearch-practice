@@ -1,0 +1,17 @@
+{
+  "actions": [
+    {
+      "add": {
+        "index": "lab-ecommerce-search-v1-000001",
+        "alias": "lab-ecommerce-search-read"
+      }
+    },
+    {
+      "add": {
+        "index": "lab-ecommerce-search-v1-000001",
+        "alias": "lab-ecommerce-search-write",
+        "is_write_index": true
+      }
+    }
+  ]
+}

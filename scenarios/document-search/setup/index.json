@@ -1,0 +1,39 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "1s"
+  },
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "document_id": {
+        "type": "keyword"
+      },
+      "tenant_id": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text"
+      },
+      "body": {
+        "type": "text"
+      },
+      "document_type": {
+        "type": "keyword"
+      },
+      "owner_id": {
+        "type": "keyword"
+      },
+      "allowed_principals": {
+        "type": "keyword"
+      },
+      "updated_at": {
+        "type": "date"
+      },
+      "revision": {
+        "type": "integer"
+      }
+    }
+  }
+}

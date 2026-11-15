@@ -1,0 +1,4 @@
+$kind: collection
+name: core
+order: 1000
+description: Ordered core exercises for hybrid-search.

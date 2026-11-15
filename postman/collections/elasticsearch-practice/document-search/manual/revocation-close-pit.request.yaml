@@ -1,0 +1,32 @@
+$kind: http-request
+name: revocation-close-pit
+description: DELETE /_pit. Exercise revocation close pit; inspect the assertion for controlled expected results
+  and vary one literal parameter to compare behavior.
+method: DELETE
+url: '{{esUrl}}/_pit'
+order: 5000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "id": "{{documentPitId}}"
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('revocation-close-pit semantics', function () {
+    pm.expect(body.succeeded).to.equal(true);
+    pm.collectionVariables.unset("documentPitId");
+    });

@@ -1,0 +1,32 @@
+$kind: http-request
+name: analyze-address
+description: POST /lab-address-search-read/_analyze. Exercise analyze address; inspect the assertion for controlled
+  expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-address-search-read/_analyze'
+order: 1000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "analyzer": "address_search",
+      "text": "CAFÉ José"
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('analyze-address semantics', function () {
+    pm.expect(body.tokens.map(t => t.token)).to.eql(["cafe","jose"]);
+    });

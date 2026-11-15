@@ -1,0 +1,5 @@
+$kind: collection
+name: address-search
+order: 1000
+description: 'address-search: direct Elasticsearch practice. Run core, variations and internals; select manual mutations
+  explicitly.'

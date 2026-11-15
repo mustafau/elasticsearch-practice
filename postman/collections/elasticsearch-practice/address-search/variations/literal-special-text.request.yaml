@@ -1,0 +1,96 @@
+$kind: http-request
+name: literal-special-text
+description: POST /lab-address-search-read/_search. Exercise literal special text; inspect the assertion for controlled
+  expected results and vary one literal parameter to compare behavior.
+method: POST
+url: '{{esUrl}}/lab-address-search-read/_search'
+order: 8000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 20,
+      "track_total_hits": true,
+      "timeout": "250ms",
+      "_source": [
+        "place_id",
+        "name",
+        "label",
+        "place_type",
+        "city_id",
+        "country_code",
+        "location"
+      ],
+      "query": {
+        "function_score": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "multi_match": {
+                    "query": "* OR *",
+                    "type": "bool_prefix",
+                    "fields": [
+                      "search_text",
+                      "search_text._2gram",
+                      "search_text._3gram"
+                    ],
+                    "operator": "and"
+                  }
+                }
+              ],
+              "filter": [
+                {
+                  "term": {
+                    "country_code": "US"
+                  }
+                }
+              ]
+            }
+          },
+          "functions": [
+            {
+              "weight": 1.0
+            },
+            {
+              "field_value_factor": {
+                "field": "popularity",
+                "modifier": "log1p",
+                "factor": 1.0,
+                "missing": 0
+              },
+              "weight": 0.2
+            }
+          ],
+          "score_mode": "sum",
+          "boost_mode": "multiply",
+          "max_boost": 5.0
+        }
+      },
+      "sort": [
+        {
+          "_score": "desc"
+        },
+        {
+          "place_id": "asc"
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('literal-special-text semantics', function () {
+    pm.expect([...ids].sort()).to.eql([]);
+    });

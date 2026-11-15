@@ -1,0 +1,26 @@
+{
+  "slug": "hybrid-search",
+  "display_name": "Hybrid Search",
+  "resources": [
+    {
+      "kind": "index",
+      "name": "lab-hybrid-search-v1-000001",
+      "body": "setup/index.json"
+    },
+    {
+      "kind": "aliases",
+      "name": "lab-hybrid-search",
+      "body": "setup/aliases.json"
+    }
+  ],
+  "manual_indices": [
+    "lab-hybrid-search-v2-000001"
+  ],
+  "target": "lab-hybrid-search-write",
+  "read_target": "lab-hybrid-search-read",
+  "fixtures": "data/passages.ndjson",
+  "id_field": "passage_id",
+  "expected_count": 20,
+  "seed_mode": "index",
+  "postman_folder": "postman/collections/elasticsearch-practice/hybrid-search"
+}

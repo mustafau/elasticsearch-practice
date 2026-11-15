@@ -1,0 +1,22 @@
+$kind: http-request
+name: migration-target-count
+description: GET /lab-ecommerce-search-v2-000001/_count. Exercise migration target count; inspect the assertion
+  for controlled expected results and vary one literal parameter to compare behavior.
+method: GET
+url: '{{esUrl}}/lab-ecommerce-search-v2-000001/_count'
+order: 8000
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('migration-target-count semantics', function () {
+    pm.expect(body.count).to.equal(30);
+    });

@@ -1,0 +1,119 @@
+$kind: http-request
+name: migration-target-relevance
+description: Validate relevance directly against the target while both aliases still point to v1. Use a clean reset
+  before a migration sequence; earlier independent mutation exercises change baseline expectations.
+method: POST
+url: '{{esUrl}}/lab-ecommerce-search-v2-000001/_search'
+order: 9000
+headers:
+- key: Content-Type
+  value: application/json
+body:
+  type: json
+  content: |
+    {
+      "size": 10,
+      "track_total_hits": true,
+      "timeout": "2s",
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "multi_match": {
+                "query": "running shoe",
+                "fields": [
+                  "title^3",
+                  "description"
+                ],
+                "operator": "and"
+              }
+            }
+          ],
+          "filter": [
+            {
+              "term": {
+                "category_id": "running-shoes"
+              }
+            },
+            {
+              "nested": {
+                "path": "variants",
+                "score_mode": "none",
+                "query": {
+                  "bool": {
+                    "filter": [
+                      {
+                        "term": {
+                          "variants.color": "red"
+                        }
+                      },
+                      {
+                        "term": {
+                          "variants.size": "L"
+                        }
+                      },
+                      {
+                        "range": {
+                          "variants.price_cents": {
+                            "lte": 10000
+                          }
+                        }
+                      },
+                      {
+                        "range": {
+                          "variants.stock_qty": {
+                            "gt": 0
+                          }
+                        }
+                      }
+                    ]
+                  }
+                },
+                "inner_hits": {
+                  "name": "matching_variants",
+                  "size": 5
+                }
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "brands": {
+          "terms": {
+            "field": "brand",
+            "size": 20
+          }
+        },
+        "categories": {
+          "terms": {
+            "field": "category_id",
+            "size": 20
+          }
+        }
+      },
+      "sort": [
+        {
+          "_score": "desc"
+        },
+        {
+          "product_id": "asc"
+        }
+      ]
+    }
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('migration-target-relevance semantics', function () {
+    pm.expect(ids).to.include("shoe-valid-red-l");
+    pm.expect(ids).to.include("shoe-other-brand");
+    });

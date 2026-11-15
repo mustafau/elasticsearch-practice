@@ -1,0 +1,23 @@
+$kind: http-request
+name: migration-verify-aliases
+description: GET /_alias/lab-ecommerce-search-read,lab-ecommerce-search-write. Exercise migration verify aliases;
+  inspect the assertion for controlled expected results and vary one literal parameter to compare behavior.
+method: GET
+url: '{{esUrl}}/_alias/lab-ecommerce-search-read,lab-ecommerce-search-write'
+order: 11000
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('migration-verify-aliases semantics', function () {
+    pm.expect(Object.keys(body)).to.eql(["lab-ecommerce-search-v2-000001"]);
+    pm.expect(body["lab-ecommerce-search-v2-000001"].aliases["lab-ecommerce-search-write"].is_write_index).to.equal(true);
+    });

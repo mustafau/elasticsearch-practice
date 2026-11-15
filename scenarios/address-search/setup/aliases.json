@@ -1,0 +1,17 @@
+{
+  "actions": [
+    {
+      "add": {
+        "index": "lab-address-search-v1-000001",
+        "alias": "lab-address-search-read"
+      }
+    },
+    {
+      "add": {
+        "index": "lab-address-search-v1-000001",
+        "alias": "lab-address-search-write",
+        "is_write_index": true
+      }
+    }
+  ]
+}

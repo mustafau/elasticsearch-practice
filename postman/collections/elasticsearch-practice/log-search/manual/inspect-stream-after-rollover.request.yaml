@@ -1,0 +1,23 @@
+$kind: http-request
+name: inspect-stream-after-rollover
+description: GET /_data_stream/lab-log-search-events. Exercise inspect stream after rollover; inspect the assertion
+  for controlled expected results and vary one literal parameter to compare behavior.
+method: GET
+url: '{{esUrl}}/_data_stream/lab-log-search-events'
+order: 5000
+scripts:
+- type: afterResponse
+  language: text/javascript
+  code: |
+    const body = pm.response.json();
+    const hits = body.hits ? body.hits.hits : [];
+    const ids = hits.map(hit => hit._id);
+    pm.test('HTTP status and complete Elasticsearch response', function () {
+      pm.expect([200, 201]).to.include(pm.response.code);
+      if (body.timed_out !== undefined) pm.expect(body.timed_out).to.equal(false);
+      if (body._shards) pm.expect(body._shards.failed).to.equal(0);
+    });
+    pm.test('inspect-stream-after-rollover semantics', function () {
+    pm.expect(body.data_streams[0].name).to.equal("lab-log-search-events");
+    pm.expect(body.data_streams[0].indices.length).to.be.above(1);
+    });
