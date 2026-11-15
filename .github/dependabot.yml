@@ -22,5 +22,5 @@ updates:
     groups:
       elastic-stack:
         patterns:
-          - docker.elastic.co/elasticsearch/elasticsearch
-          - docker.elastic.co/kibana/kibana
+          - elasticsearch/elasticsearch
+          - kibana/kibana
