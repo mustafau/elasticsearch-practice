@@ -18,7 +18,9 @@ Start with address search and work down the table. The [design notes](docs/elast
 
 You'll need Python 3.11+, Docker with Compose v2, and Postman desktop v12 or later. The collection uses Postman's native v3 YAML format. For command-line runs, install the [Postman CLI](https://learning.postman.com/docs/postman-cli/postman-cli-installation/) with native YAML support; Newman doesn't support this format.
 
-Elasticsearch and optional Kibana are pinned to **9.5.6**. Elasticsearch has a 2 GiB container memory limit, so allow additional Docker memory for overhead and Kibana if enabled. The first start after pulling a new image can take several minutes on Docker Desktop.
+Elasticsearch and optional Kibana are pinned to **9.5.6**. The default is intended for small machines: Elasticsearch has a 512 MiB JVM heap and a 1 GiB container memory limit, with unused machine learning features disabled. The hybrid exercise uses supplied vectors and does not need those features. The first start after pulling a new image can take several minutes on Docker Desktop.
+
+Kibana uses its default feature set, a 768 MiB Node.js heap limit and a 1 GiB container memory limit. Container limits are ceilings, not reserved memory; Docker also needs memory for its own overhead. On an **8 GB Mac**, start with a 2 GiB Docker Desktop memory allocation for these small fixtures. Startup can be slow, and this budget is not intended for large imports or concurrent heavy workloads. All five scenarios can be explored through Kibana's Dev Tools or the supplied Postman collection.
 
 ```sh
 python3 -m venv .venv
@@ -36,7 +38,14 @@ Elasticsearch is available at `http://localhost:9200`. Security is disabled for 
 docker compose --profile kibana up -d
 ```
 
-Then open `http://localhost:5601`.
+Then open `http://localhost:5601`. Kibana waits for Elasticsearch before starting and has its own readiness check. Allow several minutes on the first start; inspect startup and health with:
+
+```sh
+docker compose --profile kibana ps
+docker compose --profile kibana logs --tail 50 kibana
+```
+
+Re-running the start command applies changed container settings and preserves the Elasticsearch data volume. `make up` starts Elasticsearch alone; the profile command above starts both services.
 
 ## Working through an exercise
 
